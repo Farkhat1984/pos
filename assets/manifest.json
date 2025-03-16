@@ -9,18 +9,43 @@
     "orientation": "portrait",
     "icons": [
         {
-            "src": "/assets/icons/icon-72x72.png",
+            "src": "https://via.placeholder.com/72/2196F3/FFFFFF?text=POS",
             "sizes": "72x72",
             "type": "image/png"
         },
         {
-            "src": "/assets/icons/icon-96x96.png",
+            "src": "https://via.placeholder.com/96/2196F3/FFFFFF?text=POS",
             "sizes": "96x96",
             "type": "image/png"
         },
         {
-            "src": "/assets/icons/icon-192x192.png",
+            "src": "https://via.placeholder.com/128/2196F3/FFFFFF?text=POS",
+            "sizes": "128x128",
+            "type": "image/png"
+        },
+        {
+            "src": "https://via.placeholder.com/144/2196F3/FFFFFF?text=POS",
+            "sizes": "144x144",
+            "type": "image/png"
+        },
+        {
+            "src": "https://via.placeholder.com/152/2196F3/FFFFFF?text=POS",
+            "sizes": "152x152",
+            "type": "image/png"
+        },
+        {
+            "src": "https://via.placeholder.com/192/2196F3/FFFFFF?text=POS",
             "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "https://via.placeholder.com/384/2196F3/FFFFFF?text=POS",
+            "sizes": "384x384",
+            "type": "image/png"
+        },
+        {
+            "src": "https://via.placeholder.com/512/2196F3/FFFFFF?text=POS",
+            "sizes": "512x512",
             "type": "image/png"
         }
     ]

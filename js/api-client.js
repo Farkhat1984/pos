@@ -6,7 +6,7 @@ const ApiClient = (() => {
     // Default API base URL - should be updated to match your server
     let baseUrl = 'https://leema.kz';
     let authToken = null;
-
+    
     /**
      * Set the API base URL
      * @param {string} url - The base URL for API requests
@@ -14,7 +14,7 @@ const ApiClient = (() => {
     function setBaseUrl(url) {
         baseUrl = url;
     }
-
+    
     /**
      * Set the authentication token
      * @param {string} token - The auth token to use for requests
@@ -22,7 +22,7 @@ const ApiClient = (() => {
     function setAuthToken(token) {
         authToken = token;
     }
-
+    
     /**
      * Get default headers for API requests
      * @returns {Object} - Headers object
@@ -32,14 +32,14 @@ const ApiClient = (() => {
             'Content-Type': 'application/json',
             'Accept': 'application/json'
         };
-
+        
         if (authToken) {
             headers['X-API-Key'] = authToken;
         }
-
+        
         return headers;
     }
-
+    
     /**
      * Show error message
      * @param {string} message - Error message to display
@@ -57,7 +57,7 @@ const ApiClient = (() => {
             console.error(message);
         }
     }
-
+    
     /**
      * Make an API request
      * @param {string} endpoint - API endpoint
@@ -66,19 +66,19 @@ const ApiClient = (() => {
      */
     async function apiRequest(endpoint, options = {}) {
         const url = baseUrl + endpoint;
-
+        
         // Set default options
         const fetchOptions = {
             headers: getHeaders(),
             ...options
         };
-
+        
         try {
             const response = await fetch(url, fetchOptions);
-
+            
             // Log response for debugging
             console.log(`API Response [${response.status}]:`, url);
-
+            
             // Handle different status codes
             if (response.status === 200) {
                 return await response.json();
@@ -102,7 +102,7 @@ const ApiClient = (() => {
             return null;
         }
     }
-
+    
     /**
      * Get a product by barcode from the server
      * @param {string} barcode - Product barcode
@@ -112,7 +112,7 @@ const ApiClient = (() => {
         const data = await apiRequest(`/products/by-barcode/${barcode}`, {
             method: 'GET'
         });
-
+        
         if (data) {
             // Map the API response to the format we expect
             return {
@@ -120,10 +120,10 @@ const ApiClient = (() => {
                 name: data.sku_name
             };
         }
-
+        
         return null;
     }
-
+    
     /**
      * Login user and get auth token
      * @param {string} username - Username
@@ -138,7 +138,7 @@ const ApiClient = (() => {
                 password
             })
         });
-
+        
         if (data && data.access_token) {
             // Set the token for future requests
             setAuthToken(data.access_token);
@@ -147,10 +147,10 @@ const ApiClient = (() => {
                 user: data.user || { username }
             };
         }
-
+        
         return null;
     }
-
+    
     // Public API
     return {
         setBaseUrl,

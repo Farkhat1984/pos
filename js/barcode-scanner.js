@@ -47,7 +47,7 @@ const BarcodeScanner = (() => {
     function loadZXingLibrary() {
         return new Promise((resolve, reject) => {
             const script = document.createElement('script');
-            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/zxing-js/0.18.6/zxing.min.js';
+            script.src = 'https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js';
             script.onload = resolve;
             script.onerror = () => reject(new Error('Failed to load ZXing library'));
             document.head.appendChild(script);

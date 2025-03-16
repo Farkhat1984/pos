@@ -25,7 +25,7 @@ const urlsToCache = [
   '/assets/logo.png',
   '/assets/manifest.json',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css',
-  'https://cdnjs.cloudflare.com/ajax/libs/zxing-js/0.18.6/zxing.min.js'
+  'https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js'
 ];
 
 // Install event - cache assets
@@ -62,11 +62,11 @@ self.addEventListener('activate', event => {
 // Fetch event - serve from cache or network
 self.addEventListener('fetch', event => {
   // Skip for API requests that shouldn't be cached
-  if (event.request.url.includes('/auth/') || 
-      event.request.url.includes('/products/')) {
+  if (event.request.url.includes('/auth/') ||
+    event.request.url.includes('/products/')) {
     return;
   }
-  
+
   event.respondWith(
     caches.match(event.request)
       .then(response => {
@@ -74,10 +74,10 @@ self.addEventListener('fetch', event => {
         if (response) {
           return response;
         }
-        
+
         // Clone the request
         const fetchRequest = event.request.clone();
-        
+
         // Make network request
         return fetch(fetchRequest)
           .then(response => {
@@ -85,16 +85,16 @@ self.addEventListener('fetch', event => {
             if (!response || response.status !== 200 || response.type !== 'basic') {
               return response;
             }
-            
+
             // Clone the response
             const responseToCache = response.clone();
-            
+
             // Cache the response
             caches.open(CACHE_NAME)
               .then(cache => {
                 cache.put(event.request, responseToCache);
               });
-            
+
             return response;
           })
           .catch(error => {
@@ -108,9 +108,9 @@ self.addEventListener('fetch', event => {
 // Handle push notifications
 self.addEventListener('push', event => {
   if (!event.data) return;
-  
+
   const data = event.data.json();
-  
+
   const options = {
     body: data.body || 'Новое уведомление',
     icon: '/assets/icons/icon-192x192.png',
@@ -120,7 +120,7 @@ self.addEventListener('push', event => {
       url: data.url || '/'
     }
   };
-  
+
   event.waitUntil(
     self.registration.showNotification(data.title || 'POS Web App', options)
   );
@@ -129,9 +129,9 @@ self.addEventListener('push', event => {
 // Handle notification click
 self.addEventListener('notificationclick', event => {
   event.notification.close();
-  
+
   const url = event.notification.data.url;
-  
+
   event.waitUntil(
     clients.matchAll({ type: 'window' })
       .then(windowClients => {
@@ -141,7 +141,7 @@ self.addEventListener('notificationclick', event => {
             return client.focus();
           }
         }
-        
+
         // If no window is open, open a new one
         if (clients.openWindow) {
           return clients.openWindow(url);
