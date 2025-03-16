@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Склад - POS Web App</title>
+    <link rel="stylesheet" href="../css/theme.css">
+    <link rel="stylesheet" href="../css/components.css">
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="inventory-page">
+    <header class="app-header">
+        <button class="icon-button back-button" id="back-button">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+        <h1 class="header-title">Склад</h1>
+    </header>
+
+    <main class="main-content">
+        <div class="search-section">
+            <div class="search-container">
+                <input type="text" id="search-input" placeholder="Поиск товара" class="search-input">
+                <button id="search-button" class="icon-button">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="inventory-section">
+            <ul id="inventory-list" class="inventory-list">
+                <!-- Inventory items will be added here dynamically -->
+                <li class="empty-list-message">Загрузка товаров...</li>
+            </ul>
+        </div>
+
+        <button id="add-product-button" class="fab-button">
+            <i class="fas fa-plus"></i>
+        </button>
+    </main>
+
+    <div id="snackbar"></div>
+
+    <script src="../js/database.js"></script>
+    <script src="../js/api-client.js"></script>
+    <script src="../js/ui-controller.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check authentication
+            if (!localStorage.getItem('auth_token')) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // Elements
+            const searchInput = document.getElementById('search-input');
+            const searchButton = document.getElementById('search-button');
+            const inventoryList = document.getElementById('inventory-list');
+            const addProductButton = document.getElementById('add-product-button');
+            const backButton = document.getElementById('back-button');
+
+            // Load inventory
+            loadInventory();
+
+            // Event listeners
+            searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    searchProducts();
+                }
+            });
+
+            searchButton.addEventListener('click', searchProducts);
+
+            addProductButton.addEventListener('click', () => {
+                // Set scan_for_invoice to false in sessionStorage
+                sessionStorage.setItem('scan_for_invoice', 'false');
+                window.location.href = 'product-create.html';
+            });
+
+            backButton.addEventListener('click', () => {
+                window.location.href = 'main.html';
+            });
+
+            // Functions
+            async function loadInventory() {
+                try {
+                    const products = await Database.getAllProducts();
+                    updateInventoryList(products);
+                } catch (error) {
+                    showSnackbar(`Ошибка загрузки товаров: ${error.message}`);
+                    inventoryList.innerHTML = '<li class="empty-list-message">Ошибка загрузки товаров</li>';
+                }
+            }
+
+            async function searchProducts() {
+                const searchTerm = searchInput.value.trim();
+                
+                if (!searchTerm) {
+                    loadInventory();
+                    return;
+                }
+
+                try {
+                    const products = await Database.searchProducts(searchTerm);
+                    updateInventoryList(products, searchTerm);
+                } catch (error) {
+                    showSnackbar(`Ошибка поиска: ${error.message}`);
+                }
+            }
+
+            function updateInventoryList(products, searchTerm = '') {
+                inventoryList.innerHTML = '';
+
+                if (!products || products.length === 0) {
+                    let message = 'Нет товаров на складе. Добавьте товары.';
+                    
+                    if (searchTerm) {
+                        message = `Поиск по '${searchTerm}' не дал результатов.`;
+                    }
+                    
+                    inventoryList.innerHTML = `<li class="empty-list-message">${message}</li>`;
+                    return;
+                }
+
+                products.forEach(product => {
+                    const li = document.createElement('li');
+                    li.className = 'inventory-item';
+                    
+                    // Choose icon based on product data completeness
+                    let iconName = 'box';
+                    if (product.price === 0) {
+                        iconName = 'box-open'; // Use different icon for products without price
+                    }
+
+                    // Format secondary text
+                    let secondaryText = `Количество: ${product.quantity}`;
+                    if (product.price > 0) {
+                        secondaryText += `, Цена: ${product.price.toFixed(2)}`;
+                    } else {
+                        secondaryText += ', Цена: не указана';
+                    }
+
+                    li.innerHTML = `
+                        <div class="item-icon">
+                            <i class="fas fa-${iconName}"></i>
+                        </div>
+                        <div class="item-details">
+                            <div class="item-name">${product.name}</div>
+                            <div class="item-info">${secondaryText}</div>
+                        </div>
+                    `;
+                    
+                    li.addEventListener('click', () => {
+                        window.location.href = `product-edit.html?id=${product.id}`;
+                    });
+                    
+                    inventoryList.appendChild(li);
+                });
+            }
+
+            function showSnackbar(message, duration = 1500) {
+                const snackbar = document.getElementById('snackbar');
+                snackbar.textContent = message;
+                snackbar.className = 'show';
+                
+                setTimeout(() => {
+                    snackbar.className = snackbar.className.replace('show', '');
+                }, duration);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Поиск товаров - POS Web App</title>
+    <link rel="stylesheet" href="../css/theme.css">
+    <link rel="stylesheet" href="../css/components.css">
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="product-search-page">
+    <header class="app-header">
+        <button class="icon-button back-button" id="back-button">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+        <h1 class="header-title">Добавление товара</h1>
+        <button class="icon-button" id="scan-button">
+            <i class="fas fa-barcode"></i>
+        </button>
+    </header>
+
+    <main class="main-content">
+        <div class="search-section">
+            <div class="search-container">
+                <input type="text" id="search-input" placeholder="Поиск товара" class="search-input">
+                <button id="search-button" class="icon-button">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="camera-container hidden" id="camera-container">
+            <video id="camera-preview" class="camera-preview"></video>
+            <button id="close-camera" class="icon-button close-camera">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <div class="product-section">
+            <ul id="product-list" class="inventory-list">
+                <!-- Products will be added here dynamically -->
+                <li class="empty-list-message">Используйте поиск для нахождения товаров</li>
+            </ul>
+        </div>
+    </main>
+
+    <!-- Price Dialog -->
+    <div id="price-dialog" class="dialog hidden">
+        <div class="dialog-content">
+            <h3>Товар с нулевой ценой</h3>
+            <p id="price-dialog-message">Товар имеет нулевую цену. Сначала обновите цену товара.</p>
+            
+            <div class="dialog-actions">
+                <button id="price-dialog-ok" class="btn">ПОНЯТНО</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="snackbar"></div>
+
+    <script src="../js/database.js"></script>
+    <script src="../js/barcode-scanner.js"></script>
+    <script src="../js/ui-controller.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check authentication
+            if (!localStorage.getItem('auth_token')) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // Elements
+            const searchInput = document.getElementById('search-input');
+            const searchButton = document.getElementById('search-button');
+            const productList = document.getElementById('product-list');
+            const backButton = document.getElementById('back-button');
+            const scanButton = document.getElementById('scan-button');
+
+            // Camera elements
+            const cameraContainer = document.getElementById('camera-container');
+            const closeCamera = document.getElementById('close-camera');
+
+            // Price dialog
+            const priceDialog = document.getElementById('price-dialog');
+            const priceDialogMessage = document.getElementById('price-dialog-message');
+            const priceDialogOk = document.getElementById('price-dialog-ok');
+
+            // Load all products on page load
+            searchProducts();
+
+            // Event listeners
+            searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    searchProducts();
+                }
+            });
+
+            searchButton.addEventListener('click', searchProducts);
+
+            backButton.addEventListener('click', () => {
+                // Return to the invoice edit page
+                window.location.href = 'invoice-edit.html';
+            });
+
+            scanButton.addEventListener('click', () => {
+                // Start barcode scanning
+                BarcodeScanner.startScanning((barcode) => {
+                    searchInput.value = barcode;
+                    searchProducts();
+                });
+            });
+
+            closeCamera.addEventListener('click', () => {
+                BarcodeScanner.stopScanning();
+                cameraContainer.classList.add('hidden');
+            });
+
+            priceDialogOk.addEventListener('click', () => {
+                priceDialog.classList.add('hidden');
+            });
+
+            // Functions
+            async function searchProducts() {
+                const searchTerm = searchInput.value.trim();
+                
+                try {
+                    let products;
+                    
+                    if (searchTerm) {
+                        // Search by term
+                        products = await Database.searchProducts(searchTerm);
+                    } else {
+                        // Get all products
+                        products = await Database.getAllProducts();
+                    }
+                    
+                    updateProductList(products, searchTerm);
+                } catch (error) {
+                    showSnackbar(`Ошибка поиска: ${error.message}`);
+                }
+            }
+
+            function updateProductList(products, searchTerm = '') {
+                productList.innerHTML = '';
+                
+                if (!products || products.length === 0) {
+                    let message = 'Товары не найдены';
+                    
+                    if (searchTerm) {
+                        message = `Поиск по '${searchTerm}' не дал результатов`;
+                    }
+                    
+                    productList.innerHTML = `<li class="empty-list-message">${message}</li>`;
+                    return;
+                }
+                
+                products.forEach(product => {
+                    const li = document.createElement('li');
+                    li.className = 'inventory-item';
+                    
+                    li.innerHTML = `
+                        <div class="item-icon">
+                            <i class="fas fa-box"></i>
+                        </div>
+                        <div class="item-details">
+                            <div class="item-name">${product.name}</div>
+                            <div class="item-info">Цена: ${product.price.toFixed(2)} ₸ - Остаток: ${product.quantity} ${product.unit}</div>
+                        </div>
+                    `;
+                    
+                    li.addEventListener('click', () => {
+                        addToInvoice(product);
+                    });
+                    
+                    productList.appendChild(li);
+                });
+            }
+
+            function addToInvoice(product) {
+                // Check if product has a price
+                if (product.price === 0) {
+                    showPriceDialog(product);
+                    return;
+                }
+                
+                // Get current invoice from session storage
+                let currentInvoice = [];
+                const storedInvoice = sessionStorage.getItem('current_invoice');
+                
+                if (storedInvoice) {
+                    try {
+                        currentInvoice = JSON.parse(storedInvoice);
+                    } catch (error) {
+                        console.error('Error parsing stored invoice:', error);
+                    }
+                }
+                
+                // Create new item
+                const item = {
+                    productId: product.id,
+                    barcode: product.barcode,
+                    name: product.name,
+                    price: product.price,
+                    quantity: 1,
+                    total: product.price
+                };
+                
+                // Check if product already exists
+                const existingIndex = currentInvoice.findIndex(i => i.productId === item.productId);
+                
+                if (existingIndex >= 0) {
+                    // Update existing item
+                    currentInvoice[existingIndex].quantity += 1;
+                    currentInvoice[existingIndex].total = 
+                        currentInvoice[existingIndex].quantity * currentInvoice[existingIndex].price;
+                    
+                    showSnackbar(`Добавлено: ${product.name} (x${currentInvoice[existingIndex].quantity})`);
+                } else {
+                    // Add new item
+                    currentInvoice.push(item);
+                    showSnackbar(`Добавлено: ${product.name}`);
+                }
+                
+                // Save updated invoice to session storage
+                sessionStorage.setItem('current_invoice', JSON.stringify(currentInvoice));
+                
+                // Return to invoice edit page
+                window.location.href = 'invoice-edit.html';
+            }
+
+            function showPriceDialog(product) {
+                priceDialogMessage.textContent = `Товар '${product.name}' имеет нулевую цену. Сначала обновите цену товара.`;
+                priceDialog.classList.remove('hidden');
+            }
+
+            function showSnackbar(message, duration = 1500) {
+                const snackbar = document.getElementById('snackbar');
+                snackbar.textContent = message;
+                snackbar.className = 'show';
+                
+                setTimeout(() => {
+                    snackbar.className = snackbar.className.replace('show', '');
+                }, duration);
+            }
+        });
+    </script>
+</body>
+</html>

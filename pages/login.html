@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Вход - POS Web App</title>
+    <link rel="stylesheet" href="../css/theme.css">
+    <link rel="stylesheet" href="../css/components.css">
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+
+<body class="login-page">
+    <div class="login-container">
+        <div class="logo-container">
+            <img src="../assets/logo.png" alt="POS Web App Logo" class="app-logo">
+        </div>
+
+        <h2 class="login-title">Вход в мини POS систему</h2>
+
+        <form id="login-form" class="login-form">
+            <div class="form-group">
+                <div class="input-with-icon">
+                    <input type="text" id="username" name="username" placeholder="Имя пользователя" required>
+                    <i class="fas fa-user icon-right"></i>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="input-with-icon">
+                    <input type="password" id="password" name="password" placeholder="Пароль" required>
+                    <i class="fas fa-key icon-right"></i>
+                </div>
+            </div>
+
+            <div class="form-group login-actions">
+                <div id="loading-spinner" class="spinner hidden"></div>
+                <button type="submit" id="login-button" class="btn btn-primary btn-block">ВОЙТИ</button>
+            </div>
+        </form>
+
+        <div id="login-error" class="error-message hidden"></div>
+    </div>
+
+    <div id="snackbar"></div>
+
+    <script src="../js/api-client.js"></script>
+    <script src="../js/auth.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const loginForm = document.getElementById('login-form');
+            const loginButton = document.getElementById('login-button');
+            const loadingSpinner = document.getElementById('loading-spinner');
+            const errorMessage = document.getElementById('login-error');
+
+            loginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                const username = document.getElementById('username').value.trim();
+                const password = document.getElementById('password').value;
+
+                if (!username || !password) {
+                    showSnackbar('Введите логин и пароль');
+                    return;
+                }
+
+                // Show loading state
+                loginButton.disabled = true;
+                loadingSpinner.classList.remove('hidden');
+                errorMessage.classList.add('hidden');
+
+                try {
+                    const success = await Auth.login(username, password);
+
+                    if (success) {
+                        showSnackbar('Вход выполнен успешно');
+                        window.location.href = '../index.html';
+                    } else {
+                        errorMessage.textContent = 'Неверное имя пользователя или пароль';
+                        errorMessage.classList.remove('hidden');
+                    }
+                } catch (error) {
+                    errorMessage.textContent = `Ошибка входа: ${error.message}`;
+                    errorMessage.classList.remove('hidden');
+                } finally {
+                    loginButton.disabled = false;
+                    loadingSpinner.classList.add('hidden');
+                }
+            });
+
+            function showSnackbar(message) {
+                const snackbar = document.getElementById('snackbar');
+                snackbar.textContent = message;
+                snackbar.className = 'show';
+                setTimeout(() => {
+                    snackbar.className = snackbar.className.replace('show', '');
+                }, 3000);
+            }
+        });
+    </script>
+</body>
+
+</html>

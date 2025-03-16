@@ -1,0 +1,316 @@
+/* components.css - Reusable UI components */
+
+/* Buttons */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: var(--btn-height);
+    padding: 0 var(--spacing-lg);
+    border-radius: var(--border-radius);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border: none;
+    cursor: pointer;
+    transition: background-color var(--transition-fast), transform var(--transition-fast);
+    background-color: var(--gray-light);
+    color: var(--text-primary);
+}
+
+.btn:hover {
+    background-color: var(--gray-medium);
+}
+
+.btn:active {
+    transform: translateY(1px);
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    color: var(--text-on-primary);
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-dark);
+}
+
+.btn-accent {
+    background-color: var(--accent-color);
+    color: var(--text-on-accent);
+}
+
+.btn-accent:hover {
+    background-color: var(--accent-dark);
+}
+
+.btn-danger {
+    background-color: var(--red-color);
+    color: var(--text-on-primary);
+}
+
+.btn-danger:hover {
+    background-color: #D32F2F;
+}
+
+.btn-block {
+    display: block;
+    width: 100%;
+}
+
+.btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* Icon button */
+.icon-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+}
+
+.icon-button:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.icon-button:active {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Cards */
+.card {
+    background-color: var(--card-bg);
+    border-radius: var(--border-radius);
+    box-shadow: var(--card-shadow);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    transition: box-shadow var(--transition-fast);
+}
+
+.card:hover {
+    box-shadow: var(--card-shadow-hover);
+}
+
+/* Form elements */
+.form-group {
+    margin-bottom: var(--spacing-md);
+}
+
+input, select, textarea {
+    width: 100%;
+    height: var(--input-height);
+    padding: 0 var(--spacing-md);
+    border: 1px solid var(--gray-light);
+    border-radius: var(--border-radius);
+    background-color: white;
+    transition: border-color var(--transition-fast);
+}
+
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.input-with-icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-with-icon input {
+    padding-right: 48px;
+}
+
+.input-with-icon .icon-right {
+    position: absolute;
+    right: 8px;
+    color: var(--gray-medium);
+}
+
+.helper-text {
+    margin-top: var(--spacing-xs);
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+}
+
+/* Lists */
+.list-item {
+    display: flex;
+    align-items: center;
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--gray-lightest);
+    background-color: white;
+    transition: background-color var(--transition-fast);
+}
+
+.list-item:hover {
+    background-color: var(--gray-lightest);
+}
+
+.list-item .item-icon {
+    margin-right: var(--spacing-md);
+    color: var(--primary-color);
+}
+
+.list-item .item-details {
+    flex: 1;
+}
+
+.list-item .item-name {
+    font-weight: 500;
+}
+
+.list-item .item-info {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
+.empty-list-message {
+    padding: var(--spacing-xl);
+    text-align: center;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+/* Dialogs */
+.dialog {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: var(--z-index-dialog);
+}
+
+.dialog-content {
+    width: 90%;
+    max-width: 500px;
+    background-color: white;
+    border-radius: var(--border-radius);
+    padding: var(--spacing-lg);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.dialog h3 {
+    margin-bottom: var(--spacing-md);
+}
+
+.dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: var(--spacing-lg);
+    gap: var(--spacing-sm);
+}
+
+/* Spinner */
+.spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid rgba(0, 0, 0, 0.1);
+    border-top-color: var(--primary-color);
+    border-radius: 50%;
+    animation: spinner-rotate 1s linear infinite;
+}
+
+@keyframes spinner-rotate {
+    to { transform: rotate(360deg); }
+}
+
+/* Snackbar */
+#snackbar {
+    visibility: hidden;
+    min-width: 250px;
+    max-width: 80%;
+    margin-left: -125px;
+    background-color: var(--gray-dark);
+    color: #fff;
+    text-align: center;
+    border-radius: 24px;
+    padding: 16px;
+    position: fixed;
+    z-index: var(--z-index-snackbar);
+    left: 50%;
+    bottom: 30px;
+    font-size: 16px;
+    transform: translateX(-50%);
+}
+
+#snackbar.show {
+    visibility: visible;
+    animation: snackbar-fadein 0.3s, snackbar-fadeout 0.3s 2.7s;
+}
+
+@keyframes snackbar-fadein {
+    from { bottom: 0; opacity: 0; }
+    to { bottom: 30px; opacity: 1; }
+}
+
+@keyframes snackbar-fadeout {
+    from { bottom: 30px; opacity: 1; }
+    to { bottom: 0; opacity: 0; }
+}
+
+/* FAB (Floating Action Button) */
+.fab-button {
+    position: fixed;
+    right: var(--spacing-lg);
+    bottom: var(--spacing-lg);
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background-color: var(--accent-color);
+    color: var(--text-on-accent);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.16);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    cursor: pointer;
+    transition: background-color var(--transition-fast), transform var(--transition-fast);
+    z-index: 10;
+}
+
+.fab-button:hover {
+    background-color: var(--accent-dark);
+}
+
+.fab-button:active {
+    transform: translateY(2px);
+}
+
+.fab-button i {
+    font-size: 24px;
+}
+
+/* Utility classes */
+.hidden {
+    display: none !important;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.mt-1 { margin-top: var(--spacing-xs); }
+.mt-2 { margin-top: var(--spacing-sm); }
+.mt-3 { margin-top: var(--spacing-md); }
+.mt-4 { margin-top: var(--spacing-lg); }
+.mt-5 { margin-top: var(--spacing-xl); }
+
+.mb-1 { margin-bottom: var(--spacing-xs); }
+.mb-2 { margin-bottom: var(--spacing-sm); }
+.mb-3 { margin-bottom: var(--spacing-md); }
+.mb-4 { margin-bottom: var(--spacing-lg); }
+.mb-5 { margin-bottom: var(--spacing-xl); }

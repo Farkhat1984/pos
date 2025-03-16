@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Редактирование накладной - POS Web App</title>
+    <link rel="stylesheet" href="../css/theme.css">
+    <link rel="stylesheet" href="../css/components.css">
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="invoice-edit-page">
+    <header class="app-header">
+        <button class="icon-button back-button" id="back-button">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+        <h1 class="header-title" id="screen-title">Редактирование накладной</h1>
+        <button class="icon-button" id="add-product-button">
+            <i class="fas fa-plus"></i>
+        </button>
+    </header>
+
+    <main class="main-content">
+        <div class="invoice-section">
+            <ul id="invoice-items" class="invoice-items-list">
+                <!-- Invoice items will be added here dynamically -->
+                <li class="empty-list-message">Загрузка данных накладной...</li>
+            </ul>
+        </div>
+
+        <div class="invoice-summary">
+            <button id="total-button" class="total-button paid">
+                ИТОГО: <span id="total-amount">0.00</span>
+            </button>
+            <button id="save-button" class="save-button">
+                <i class="fas fa-save"></i> СОХРАНИТЬ
+            </button>
+        </div>
+    </main>
+
+    <!-- Item Edit Dialog -->
+    <div id="item-edit-dialog" class="dialog hidden">
+        <div class="dialog-content">
+            <h3 id="edit-item-title">Изменить товар</h3>
+            
+            <div class="form-group">
+                <label>Количество:</label>
+                <div class="quantity-control">
+                    <button id="decrement-quantity" class="icon-button">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                    <span id="item-quantity">1</span>
+                    <button id="increment-quantity" class="icon-button">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Цена:</label>
+                <input type="number" id="item-price" class="price-input" step="0.01">
+            </div>
+            
+            <div class="dialog-actions">
+                <button id="cancel-edit" class="btn">ОТМЕНА</button>
+                <button id="delete-item" class="btn btn-danger">УДАЛИТЬ</button>
+                <button id="save-item" class="btn btn-primary">СОХРАНИТЬ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Exit Dialog -->
+    <div id="confirm-exit-dialog" class="dialog hidden">
+        <div class="dialog-content">
+            <h3>Отменить изменения?</h3>
+            <p>Все несохраненные изменения будут потеряны.</p>
+            
+            <div class="dialog-actions">
+                <button id="cancel-exit" class="btn">ОТМЕНА</button>
+                <button id="confirm-exit" class="btn btn-danger">ВЫЙТИ БЕЗ СОХРАНЕНИЯ</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="snackbar"></div>
+
+    <script src="../js/database.js"></script>
+    <script src="../js/ui-controller.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check authentication
+            if (!localStorage.getItem('auth_token')) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // Elements
+            const screenTitle = document.getElementById('screen-title');
+            const invoiceItems = document.getElementById('invoice-items');
+            const totalButton = document.getElementById('total-button');
+            const totalAmount = document.getElementById('total-amount');
+            const saveButton = document.getElementById('save-button');
+            const backButton = document.getElementById('back-button');
+            const addProductButton = document.getElementById('add-product-button');
+
+            // Dialog elements
+            const itemEditDialog = document.getElementById('item-edit-dialog');
+            const editItemTitle = document.getElementById('edit-item-title');
+            const itemQuantity = document.getElementById('item-quantity');
+            const itemPrice = document.getElementById('item-price');
+            const incrementQuantity = document.getElementById('increment-quantity');
+            const decrementQuantity = document.getElementById('decrement-quantity');
+            const cancelEdit = document.getElementById('cancel-edit');
+            const deleteItem = document.getElementById('delete-item');
+            const saveItem = document.getElementById('save-item');
+
+            // Confirm exit dialog
+            const confirmExitDialog = document.getElementById('confirm-exit-dialog');
+            const cancelExit = document.getElementById('cancel-exit');
+            const confirmExit = document.getElementById('confirm-exit');
+
+            // State variables
+            let invoiceId = 0;
+            let currentInvoice = [];
+            let paymentStatus = true; // true = paid, false = unpaid
+            let editingItemIndex = -1;
+
+            // Initialize
+            init();
+
+            // Event listeners
+            totalButton.addEventListener('click', togglePaymentStatus);
+            
+            saveButton.addEventListener('click', saveInvoice);
+            
+            backButton.addEventListener('click', confirmExitWithoutSaving);
+            
+            addProductButton.addEventListener('click', () => {
+                window.location.href = 'product-search.html';
+            });
+
+            // Initialize from session storage
+            function init() {
+                // Get invoice ID from session storage
+                const storedInvoiceId = sessionStorage.getItem('editing_invoice_id');
+                if (!storedInvoiceId) {
+                    showSnackbar('Накладная не найдена');
+                    window.location.href = 'invoice-history.html';
+                    return;
+                }
+                
+                invoiceId = parseInt(storedInvoiceId);
+                
+                // Update title
+                screenTitle.textContent = `Редактирование накладной #${invoiceId}`;
+                
+                // Load invoice data
+                loadInvoice(invoiceId);
+            }
+
+            async function loadInvoice(id) {
+                try {
+                    // Get invoice from database
+                    const invoice = await Database.getInvoice(id);
+                    
+                    if (!invoice) {
+                        showSnackbar('Накладная не найдена');
+                        window.location.href = 'invoice-history.html';
+                        return;
+                    }
+                    
+                    // Set payment status
+                    paymentStatus = invoice.paymentStatus;
+                    updateTotalButton();
+                    
+                    // Get invoice items
+                    const items = await Database.getInvoiceItems(id);
+                    
+                    // Format items for the current invoice
+                    currentInvoice = items.map(item => ({
+                        productId: item.productId,
+                        name: item.name,
+                        barcode: item.barcode,
+                        price: item.price,
+                        quantity: item.quantity,
+                        total: item.total
+                    }));
+                    
+                    // Update UI
+                    updateInvoiceItems();
+                    
+                } catch (error) {
+                    showSnackbar(`Ошибка загрузки накладной: ${error.message}`);
+                }
+            }
+
+            function updateInvoiceItems() {
+                invoiceItems.innerHTML = '';
+                
+                if (currentInvoice.length === 0) {
+                    invoiceItems.innerHTML = '<li class="empty-list-message">Накладная пуста. Добавьте товары или удалите накладную.</li>';
+                    totalAmount.textContent = '0.00';
+                    return;
+                }
+                
+                let total = 0;
+                
+                currentInvoice.forEach((item, index) => {
+                    const li = document.createElement('li');
+                    li.className = 'invoice-item';
+                    
+                    li.innerHTML = `
+                        <div class="item-icon">
+                            <i class="fas fa-box"></i>
+                        </div>
+                        <div class="item-details">
+                            <div class="item-name">${item.name}</div>
+                            <div class="item-info">${item.quantity} x ${item.price.toFixed(2)} = ${item.total.toFixed(2)}</div>
+                        </div>
+                    `;
+                    
+                    li.addEventListener('click', () => {
+                        showEditItemDialog(index);
+                    });
+                    
+                    invoiceItems.appendChild(li);
+                    total += item.total;
+                });
+                
+                totalAmount.textContent = total.toFixed(2);
+            }
+
+            function togglePaymentStatus() {
+                paymentStatus = !paymentStatus;
+                updateTotalButton();
+                
+                const statusText = paymentStatus ? 'Оплачено' : 'Не оплачено';
+                showSnackbar(`Статус: ${statusText}`);
+            }
+
+            function updateTotalButton() {
+                if (paymentStatus) {
+                    totalButton.className = 'total-button paid';
+                } else {
+                    totalButton.className = 'total-button unpaid';
+                }
+            }
+
+            function showEditItemDialog(index) {
+                editingItemIndex = index;
+                const item = currentInvoice[index];
+                
+                // Set dialog content
+                editItemTitle.textContent = `Изменить: ${item.name}`;
+                itemQuantity.textContent = item.quantity;
+                itemPrice.value = item.price.toFixed(2);
+                
+                // Show dialog
+                itemEditDialog.classList.remove('hidden');
+                
+                // Set up dialog event handlers
+                incrementQuantity.onclick = () => {
+                    let qty = parseInt(itemQuantity.textContent);
+                    itemQuantity.textContent = qty + 1;
+                };
+                
+                decrementQuantity.onclick = () => {
+                    let qty = parseInt(itemQuantity.textContent);
+                    if (qty > 1) {
+                        itemQuantity.textContent = qty - 1;
+                    }
+                };
+                
+                cancelEdit.onclick = () => {
+                    itemEditDialog.classList.add('hidden');
+                };
+                
+                deleteItem.onclick = () => {
+                    if (editingItemIndex >= 0 && editingItemIndex < currentInvoice.length) {
+                        currentInvoice.splice(editingItemIndex, 1);
+                        itemEditDialog.classList.add('hidden');
+                        updateInvoiceItems();
+                        showSnackbar('Товар удален из накладной');
+                    }
+                };
+                
+                saveItem.onclick = () => {
+                    if (editingItemIndex >= 0 && editingItemIndex < currentInvoice.length) {
+                        const newQuantity = parseInt(itemQuantity.textContent);
+                        const newPrice = parseFloat(itemPrice.value);
+                        
+                        if (newQuantity <= 0) {
+                            showSnackbar('Количество должно быть больше 0');
+                            return;
+                        }
+                        
+                        if (newPrice < 0) {
+                            showSnackbar('Цена не может быть отрицательной');
+                            return;
+                        }
+                        
+                        currentInvoice[editingItemIndex].quantity = newQuantity;
+                        currentInvoice[editingItemIndex].price = newPrice;
+                        currentInvoice[editingItemIndex].total = newQuantity * newPrice;
+                        
+                        updateInvoiceItems();
+                        itemEditDialog.classList.add('hidden');
+                        showSnackbar('Товар обновлен');
+                    }
+                };
+            }
+
+            async function saveInvoice() {
+                if (currentInvoice.length === 0) {
+                    showSnackbar('Накладная пуста! Нельзя сохранить пустую накладную.', 2000);
+                    return;
+                }
+                
+                try {
+                    // Calculate total
+                    const total = currentInvoice.reduce((sum, item) => sum + item.total, 0);
+                    
+                    // Update invoice
+                    const transaction = await Database.updateInvoice(invoiceId, {
+                        total,
+                        paymentStatus
+                    });
+                    
+                    // Delete old items and add new ones
+                    await Database.deleteInvoiceItems(invoiceId);
+                    
+                    for (const item of currentInvoice) {
+                        await Database.addInvoiceItem({
+                            invoiceId,
+                            productId: item.productId,
+                            quantity: item.quantity,
+                            price: item.price,
+                            total: item.total
+                        });
+                    }
+                    
+                    // Show success message
+                    const statusText = paymentStatus ? 'Оплачено' : 'Не оплачено';
+                    showSnackbar(`Накладная #${invoiceId} обновлена. Статус: ${statusText}`, 2000);
+                    
+                    // Clear session storage and redirect after delay
+                    sessionStorage.removeItem('editing_invoice_id');
+                    setTimeout(() => {
+                        window.location.href = 'invoice-history.html';
+                    }, 1000);
+                    
+                } catch (error) {
+                    showSnackbar(`Ошибка сохранения накладной: ${error.message}`, 3000);
+                }
+            }
+
+            function confirmExitWithoutSaving() {
+                confirmExitDialog.classList.remove('hidden');
+                
+                // Set up dialog event handlers
+                cancelExit.onclick = () => {
+                    confirmExitDialog.classList.add('hidden');
+                };
+                
+                confirmExit.onclick = () => {
+                    // Clear session storage and redirect
+                    sessionStorage.removeItem('editing_invoice_id');
+                    window.location.href = 'invoice-history.html';
+                };
+            }
+
+            function showSnackbar(message, duration = 1500) {
+                const snackbar = document.getElementById('snackbar');
+                snackbar.textContent = message;
+                snackbar.className = 'show';
+                
+                setTimeout(() => {
+                    snackbar.className = snackbar.className.replace('show', '');
+                }, duration);
+            }
+        });
+    </script>
+</body>
+</html>

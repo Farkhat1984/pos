@@ -1,0 +1,129 @@
+/* theme.css - Variables and base styles */
+
+:root {
+    /* Primary colors */
+    --primary-color: #2196F3;         /* Blue */
+    --primary-dark: #1976D2;
+    --primary-light: #64B5F6;
+    
+    /* Secondary colors */
+    --accent-color: #FFC107;          /* Amber */
+    --accent-dark: #FFA000;
+    --accent-light: #FFD54F;
+    
+    /* Additional palette colors */
+    --purple-color: #9C27B0;
+    --green-color: #4CAF50;
+    --red-color: #F44336;
+    
+    /* Grayscale */
+    --gray-darkest: #212121;
+    --gray-dark: #424242;
+    --gray-medium: #757575;
+    --gray-light: #BDBDBD;
+    --gray-lightest: #F5F5F5;
+    
+    /* Text colors */
+    --text-primary: var(--gray-darkest);
+    --text-secondary: var(--gray-medium);
+    --text-on-primary: #FFFFFF;
+    --text-on-accent: #000000;
+    
+    /* UI components */
+    --card-bg: #FFFFFF;
+    --card-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    --card-shadow-hover: 0 4px 8px rgba(0, 0, 0, 0.15);
+    
+    /* Status colors */
+    --status-paid: #4CAF50;           /* Green */
+    --status-unpaid: #F44336;         /* Red */
+    --status-pending: #FF9800;        /* Orange */
+    
+    /* Dimensions */
+    --header-height: 56px;
+    --border-radius: 8px;
+    --input-height: 50px;
+    --btn-height: 48px;
+    
+    /* Spacing */
+    --spacing-xs: 4px;
+    --spacing-sm: 8px; 
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --spacing-xl: 32px;
+    
+    /* Animations */
+    --transition-fast: 0.2s;
+    --transition-medium: 0.3s;
+    --transition-slow: 0.5s;
+    
+    /* Fonts */
+    --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+      Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    --font-size-xs: 12px;
+    --font-size-sm: 14px;
+    --font-size-md: 16px;
+    --font-size-lg: 18px;
+    --font-size-xl: 20px;
+    --font-size-xxl: 24px;
+    
+    /* Z-indices */
+    --z-index-header: 100;
+    --z-index-dialog: 200;
+    --z-index-snackbar: 300;
+}
+
+/* Base styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    font-size: 16px;
+}
+
+body {
+    font-family: var(--font-family);
+    font-size: var(--font-size-md);
+    line-height: 1.5;
+    color: var(--text-primary);
+    background-color: var(--gray-lightest);
+    overflow-x: hidden;
+    max-width: 100%;
+}
+
+a {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+ul, ol {
+    list-style: none;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 500;
+    line-height: 1.2;
+}
+
+button, input, select, textarea {
+    font-family: inherit;
+    font-size: inherit;
+    color: inherit;
+}
+
+input::placeholder {
+    color: var(--gray-light);
+}
+
+/* Responsive max width for app container */
+@media (min-width: 768px) {
+    #app-container {
+        max-width: 480px;
+        margin: 0 auto;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        height: 100vh;
+    }
+}

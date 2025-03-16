@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Главная - POS Web App</title>
+    <link rel="stylesheet" href="../css/theme.css">
+    <link rel="stylesheet" href="../css/components.css">
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="main-page">
+    <header class="app-header">
+        <h1 class="header-title">Мини POS Система</h1>
+        <button id="logout-button" class="icon-button">
+            <i class="fas fa-sign-out-alt"></i>
+        </button>
+    </header>
+
+    <main class="main-content">
+        <div class="welcome-section">
+            <h2 class="welcome-message">Добро пожаловать, <span id="user-name">Пользователь</span></h2>
+            <h3 class="section-title">Выберите действие</h3>
+            <div class="separator"></div>
+        </div>
+
+        <div class="actions-grid">
+            <div class="action-card primary" id="scan-invoice-action">
+                <div class="action-icon">
+                    <i class="fas fa-barcode"></i>
+                </div>
+                <div class="action-label">СКАНИРОВАТЬ ТОВАР</div>
+            </div>
+
+            <div class="action-card accent" id="inventory-action">
+                <div class="action-icon">
+                    <i class="fas fa-warehouse"></i>
+                </div>
+                <div class="action-label">СКЛАД</div>
+            </div>
+
+            <div class="action-card purple" id="invoice-history-action">
+                <div class="action-icon">
+                    <i class="fas fa-history"></i>
+                </div>
+                <div class="action-label">ИСТОРИЯ НАКЛАДНЫХ</div>
+            </div>
+
+            <div class="action-card green" id="analytics-action">
+                <div class="action-icon">
+                    <i class="fas fa-chart-bar"></i>
+                </div>
+                <div class="action-label">АНАЛИТИКА</div>
+            </div>
+        </div>
+    </main>
+
+    <div id="snackbar"></div>
+
+    <script src="../js/api-client.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/ui-controller.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check if user is authenticated
+            if (!Auth.isAuthenticated()) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // Set user name
+            const userData = Auth.getUserData();
+            if (userData && userData.username) {
+                document.getElementById('user-name').textContent = userData.username;
+            }
+
+            // Logout handler
+            document.getElementById('logout-button').addEventListener('click', () => {
+                UIController.showConfirmDialog(
+                    'Выход из системы',
+                    'Вы уверены, что хотите выйти?',
+                    () => {
+                        Auth.logout();
+                        window.location.href = 'login.html';
+                    }
+                );
+            });
+
+            // Action card event listeners
+            document.getElementById('scan-invoice-action').addEventListener('click', () => {
+                window.location.href = 'scan-invoice.html';
+            });
+
+            document.getElementById('inventory-action').addEventListener('click', () => {
+                window.location.href = 'inventory.html';
+            });
+
+            document.getElementById('invoice-history-action').addEventListener('click', () => {
+                window.location.href = 'invoice-history.html';
+            });
+
+            document.getElementById('analytics-action').addEventListener('click', () => {
+                window.location.href = 'analytics.html';
+            });
+        });
+    </script>
+</body>
+</html>

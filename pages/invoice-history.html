@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>История накладных - POS Web App</title>
+    <link rel="stylesheet" href="../css/theme.css">
+    <link rel="stylesheet" href="../css/components.css">
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="invoice-history-page">
+    <header class="app-header">
+        <button class="icon-button back-button" id="back-button">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+        <h1 class="header-title">История накладных</h1>
+    </header>
+
+    <main class="main-content">
+        <!-- Search area -->
+        <div class="search-section">
+            <div class="search-container">
+                <input type="text" id="search-input" placeholder="Поиск по номеру или статусу" class="search-input">
+                <button id="search-button" class="icon-button">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Date range filter -->
+        <div class="date-filter">
+            <div class="date-input" id="start-date-selector">
+                <i class="fas fa-calendar"></i>
+                <span id="start-date-display">01.01.2025</span>
+            </div>
+            
+            <span class="date-separator">—</span>
+            
+            <div class="date-input" id="end-date-selector">
+                <i class="fas fa-calendar"></i>
+                <span id="end-date-display">01.02.2025</span>
+            </div>
+        </div>
+
+        <!-- Invoice list -->
+        <ul id="invoice-list" class="invoice-list">
+            <!-- Invoices will be added here dynamically -->
+            <li class="empty-list-message">Загрузка накладных...</li>
+        </ul>
+    </main>
+
+    <!-- Invoice Options Dialog -->
+    <div id="invoice-options-dialog" class="dialog hidden">
+        <div class="dialog-content">
+            <h3 id="dialog-invoice-title">Накладная #123</h3>
+            <p id="dialog-invoice-details">Дата: 01.01.2025 - Сумма: 0.00 ₸ - Статус: Оплачено</p>
+            
+            <div class="dialog-actions">
+                <button id="close-dialog" class="btn">ЗАКРЫТЬ</button>
+                <button id="delete-invoice" class="btn btn-danger">УДАЛИТЬ</button>
+                <button id="edit-invoice" class="btn btn-primary">РЕДАКТИРОВАТЬ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Dialog -->
+    <div id="delete-confirmation-dialog" class="dialog hidden">
+        <div class="dialog-content">
+            <h3>Подтверждение удаления</h3>
+            <p id="delete-confirmation-message">Вы уверены, что хотите удалить накладную #123?</p>
+            <p>Это действие нельзя отменить.</p>
+            
+            <div class="dialog-actions">
+                <button id="cancel-delete" class="btn">ОТМЕНА</button>
+                <button id="confirm-delete" class="btn btn-danger">УДАЛИТЬ</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="snackbar"></div>
+
+    <script src="../js/database.js"></script>
+    <script src="../js/ui-controller.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check authentication
+            if (!localStorage.getItem('auth_token')) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // Elements
+            const searchInput = document.getElementById('search-input');
+            const searchButton = document.getElementById('search-button');
+            const startDateDisplay = document.getElementById('start-date-display');
+            const endDateDisplay = document.getElementById('end-date-display');
+            const startDateSelector = document.getElementById('start-date-selector');
+            const endDateSelector = document.getElementById('end-date-selector');
+            const invoiceList = document.getElementById('invoice-list');
+            const backButton = document.getElementById('back-button');
+
+            // Dialog elements
+            const invoiceOptionsDialog = document.getElementById('invoice-options-dialog');
+            const dialogInvoiceTitle = document.getElementById('dialog-invoice-title');
+            const dialogInvoiceDetails = document.getElementById('dialog-invoice-details');
+            const closeDialogButton = document.getElementById('close-dialog');
+            const deleteInvoiceButton = document.getElementById('delete-invoice');
+            const editInvoiceButton = document.getElementById('edit-invoice');
+
+            // Delete confirmation dialog
+            const deleteConfirmationDialog = document.getElementById('delete-confirmation-dialog');
+            const deleteConfirmationMessage = document.getElementById('delete-confirmation-message');
+            const cancelDeleteButton = document.getElementById('cancel-delete');
+            const confirmDeleteButton = document.getElementById('confirm-delete');
+
+            // Date range state
+            let startDate = new Date();
+            startDate.setDate(1); // First day of current month
+            let endDate = new Date();
+            
+            // Selected invoice for dialogs
+            let selectedInvoice = null;
+
+            // Initialize date displays
+            updateDateDisplay();
+            
+            // Load invoices on page load
+            loadInvoices();
+
+            // Event listeners
+            searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    searchInvoices();
+                }
+            });
+
+            searchButton.addEventListener('click', searchInvoices);
+
+            startDateSelector.addEventListener('click', () => {
+                showDatePicker(startDate, (date) => {
+                    startDate = date;
+                    updateDateDisplay();
+                    loadInvoices();
+                });
+            });
+
+            endDateSelector.addEventListener('click', () => {
+                showDatePicker(endDate, (date) => {
+                    endDate = date;
+                    updateDateDisplay();
+                    loadInvoices();
+                });
+            });
+
+            backButton.addEventListener('click', () => {
+                window.location.href = 'main.html';
+            });
+
+            // Dialog event listeners
+            closeDialogButton.addEventListener('click', () => {
+                invoiceOptionsDialog.classList.add('hidden');
+            });
+
+            deleteInvoiceButton.addEventListener('click', () => {
+                if (!selectedInvoice) return;
+                
+                // Hide options dialog
+                invoiceOptionsDialog.classList.add('hidden');
+                
+                // Show delete confirmation dialog
+                deleteConfirmationMessage.textContent = `Вы уверены, что хотите удалить накладную #${selectedInvoice.id}?`;
+                deleteConfirmationDialog.classList.remove('hidden');
+            });
+
+            editInvoiceButton.addEventListener('click', () => {
+                if (!selectedInvoice) return;
+                
+                // Hide dialog
+                invoiceOptionsDialog.classList.add('hidden');
+                
+                // Redirect to edit page
+                navigateToInvoiceEdit(selectedInvoice.id);
+            });
+
+            // Delete confirmation dialog buttons
+            cancelDeleteButton.addEventListener('click', () => {
+                deleteConfirmationDialog.classList.add('hidden');
+            });
+
+            confirmDeleteButton.addEventListener('click', async () => {
+                if (!selectedInvoice) {
+                    deleteConfirmationDialog.classList.add('hidden');
+                    return;
+                }
+                
+                try {
+                    // Delete the invoice
+                    await Database.deleteInvoice(selectedInvoice.id);
+                    
+                    // Hide dialog
+                    deleteConfirmationDialog.classList.add('hidden');
+                    
+                    // Show success message
+                    showSnackbar(`Накладная #${selectedInvoice.id} удалена`);
+                    
+                    // Reload invoices
+                    loadInvoices();
+                } catch (error) {
+                    showSnackbar(`Ошибка удаления накладной: ${error.message}`);
+                }
+            });
+
+            // Functions
+            function updateDateDisplay() {
+                startDateDisplay.textContent = formatDate(startDate);
+                endDateDisplay.textContent = formatDate(endDate);
+            }
+
+            function formatDate(date) {
+                const day = String(date.getDate()).padStart(2, '0');
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const year = date.getFullYear();
+                return `${day}.${month}.${year}`;
+            }
+
+            function formatDateTime(dateString) {
+                const date = new Date(dateString);
+                return `${formatDate(date)} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+            }
+
+            function showDatePicker(initialDate, onSelect) {
+                UIController.showDatePicker(initialDate, onSelect);
+            }
+
+            async function loadInvoices() {
+                try {
+                    // Format dates for database query
+                    const startDateFormatted = startDate.toISOString();
+                    const endDateFormatted = new Date(endDate.setHours(23, 59, 59, 999)).toISOString();
+                    
+                    // Get invoices from database
+                    const invoices = await Database.getInvoicesByPeriod(startDateFormatted, endDateFormatted);
+                    
+                    // Filter by search query if provided
+                    const searchQuery = searchInput.value.trim().toLowerCase();
+                    const filteredInvoices = searchQuery ? filterInvoices(invoices, searchQuery) : invoices;
+                    
+                    // Update the list
+                    updateInvoiceList(filteredInvoices);
+                } catch (error) {
+                    showSnackbar(`Ошибка загрузки накладных: ${error.message}`);
+                    invoiceList.innerHTML = '<li class="empty-list-message">Ошибка загрузки накладных</li>';
+                }
+            }
+
+            function filterInvoices(invoices, query) {
+                return invoices.filter(invoice => {
+                    // Check invoice ID
+                    if (invoice.id.toString().includes(query)) {
+                        return true;
+                    }
+                    
+                    // Check payment status
+                    const isPaid = invoice.paymentStatus;
+                    if (
+                        (isPaid && ['оплачено', 'оплачен', 'paid'].some(term => query.includes(term))) ||
+                        (!isPaid && ['не оплачено', 'не оплачен', 'unpaid'].some(term => query.includes(term)))
+                    ) {
+                        return true;
+                    }
+                    
+                    return false;
+                });
+            }
+
+            function searchInvoices() {
+                loadInvoices();
+            }
+
+            function updateInvoiceList(invoices) {
+                invoiceList.innerHTML = '';
+                
+                if (!invoices || invoices.length === 0) {
+                    invoiceList.innerHTML = '<li class="empty-list-message">Накладные не найдены</li>';
+                    return;
+                }
+                
+                invoices.forEach(invoice => {
+                    const li = document.createElement('li');
+                    li.className = `invoice-item ${invoice.paymentStatus ? 'paid' : 'unpaid'}`;
+                    
+                    const statusText = invoice.paymentStatus ? 'Оплачено' : 'Не оплачено';
+                    const formattedDate = formatDateTime(invoice.date);
+                    
+                    li.innerHTML = `
+                        <div class="item-icon">
+                            <i class="fas fa-file-invoice"></i>
+                        </div>
+                        <div class="item-details">
+                            <div class="item-name">Накладная #${invoice.id}</div>
+                            <div class="item-info">${formattedDate} - ${invoice.total.toFixed(2)} ₸ - ${statusText}</div>
+                        </div>
+                        <div class="invoice-status ${invoice.paymentStatus ? 'paid' : 'unpaid'}">${statusText}</div>
+                    `;
+                    
+                    // Click handler to show options
+                    li.addEventListener('click', () => {
+                        showInvoiceOptions(invoice);
+                    });
+                    
+                    invoiceList.appendChild(li);
+                });
+            }
+
+            function showInvoiceOptions(invoice) {
+                selectedInvoice = invoice;
+                
+                // Set dialog content
+                dialogInvoiceTitle.textContent = `Накладная #${invoice.id}`;
+                
+                const formattedDate = formatDateTime(invoice.date);
+                const statusText = invoice.paymentStatus ? 'Оплачено' : 'Не оплачено';
+                
+                dialogInvoiceDetails.textContent = `Дата: ${formattedDate}
+Сумма: ${invoice.total.toFixed(2)} ₸
+Статус: ${statusText}`;
+                
+                // Show dialog
+                invoiceOptionsDialog.classList.remove('hidden');
+            }
+
+            function navigateToInvoiceEdit(invoiceId) {
+                // Store invoice ID in session storage for the edit page
+                sessionStorage.setItem('editing_invoice_id', invoiceId);
+                
+                // Redirect to edit page
+                window.location.href = 'invoice-edit.html';
+            }
+
+            function showSnackbar(message, duration = 1500) {
+                const snackbar = document.getElementById('snackbar');
+                snackbar.textContent = message;
+                snackbar.className = 'show';
+                
+                setTimeout(() => {
+                    snackbar.className = snackbar.className.replace('show', '');
+                }, duration);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Аналитика - POS Web App</title>
+    <link rel="stylesheet" href="../css/theme.css">
+    <link rel="stylesheet" href="../css/components.css">
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js"></script>
+</head>
+<body class="analytics-page">
+    <header class="app-header">
+        <button class="icon-button back-button" id="back-button">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+        <h1 class="header-title">Аналитика</h1>
+    </header>
+
+    <main class="main-content">
+        <!-- Date range filter -->
+        <div class="date-filter">
+            <div class="date-input" id="start-date-selector">
+                <i class="fas fa-calendar"></i>
+                <span id="start-date-display">01.01.2025</span>
+            </div>
+            
+            <span class="date-separator">—</span>
+            
+            <div class="date-input" id="end-date-selector">
+                <i class="fas fa-calendar"></i>
+                <span id="end-date-display">01.02.2025</span>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="analytics-tabs">
+            <div class="analytics-tab active" id="sales-tab">Продажи</div>
+            <div class="analytics-tab" id="profit-tab">Прибыль</div>
+        </div>
+
+        <!-- Analytics content -->
+        <div class="analytics-content">
+            <div id="sales-content">
+                <div class="analytics-cards">
+                    <div class="analytics-card">
+                        <div class="analytics-value" id="total-sales">0.00</div>
+                        <div class="analytics-label">Общая сумма продаж</div>
+                    </div>
+                    
+                    <div class="analytics-card">
+                        <div class="analytics-value" id="invoice-count">0</div>
+                        <div class="analytics-label">Количество накладных</div>
+                    </div>
+                    
+                    <div class="analytics-card">
+                        <div class="analytics-value" id="average-invoice">0.00</div>
+                        <div class="analytics-label">Средний чек</div>
+                    </div>
+                    
+                    <div class="analytics-card">
+                        <div class="analytics-value" id="paid-amount">0.00</div>
+                        <div class="analytics-label">Оплачено</div>
+                    </div>
+                    
+                    <div class="analytics-card">
+                        <div class="analytics-value" id="debt-amount">0.00</div>
+                        <div class="analytics-label">В долг</div>
+                    </div>
+                    
+                    <div class="analytics-card">
+                        <canvas id="sales-chart" height="200"></canvas>
+                    </div>
+                </div>
+
+                <!-- Top products -->
+                <div class="analytics-card mt-3">
+                    <h3 class="analytics-title">Топ-5 продаваемых товаров</h3>
+                    <ul id="top-products-list" class="inventory-list">
+                        <li class="empty-list-message">Загрузка данных...</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div id="profit-content" class="hidden">
+                <div class="analytics-cards">
+                    <div class="analytics-card">
+                        <div class="analytics-value" id="revenue">0.00</div>
+                        <div class="analytics-label">Выручка</div>
+                    </div>
+                    
+                    <div class="analytics-card">
+                        <div class="analytics-value" id="cost">0.00</div>
+                        <div class="analytics-label">Себестоимость</div>
+                    </div>
+                    
+                    <div class="analytics-card">
+                        <div class="analytics-value" id="profit">0.00</div>
+                        <div class="analytics-label">Прибыль</div>
+                    </div>
+                    
+                    <div class="analytics-card">
+                        <div class="analytics-value" id="margin">0.00%</div>
+                        <div class="analytics-label">Рентабельность</div>
+                    </div>
+                    
+                    <div class="analytics-card">
+                        <canvas id="profit-chart" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="snackbar"></div>
+
+    <script src="../js/database.js"></script>
+    <script src="../js/ui-controller.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check authentication
+            if (!localStorage.getItem('auth_token')) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // Elements
+            const startDateDisplay = document.getElementById('start-date-display');
+            const endDateDisplay = document.getElementById('end-date-display');
+            const startDateSelector = document.getElementById('start-date-selector');
+            const endDateSelector = document.getElementById('end-date-selector');
+            const salesTab = document.getElementById('sales-tab');
+            const profitTab = document.getElementById('profit-tab');
+            const salesContent = document.getElementById('sales-content');
+            const profitContent = document.getElementById('profit-content');
+            const backButton = document.getElementById('back-button');
+
+            // Sales elements
+            const totalSalesEl = document.getElementById('total-sales');
+            const invoiceCountEl = document.getElementById('invoice-count');
+            const averageInvoiceEl = document.getElementById('average-invoice');
+            const paidAmountEl = document.getElementById('paid-amount');
+            const debtAmountEl = document.getElementById('debt-amount');
+            const topProductsList = document.getElementById('top-products-list');
+
+            // Profit elements
+            const revenueEl = document.getElementById('revenue');
+            const costEl = document.getElementById('cost');
+            const profitEl = document.getElementById('profit');
+            const marginEl = document.getElementById('margin');
+
+            // Charts
+            let salesChart = null;
+            let profitChart = null;
+
+            // Date range state
+            let startDate = new Date();
+            startDate.setDate(1); // First day of current month
+            let endDate = new Date();
+
+            // Initialize
+            updateDateDisplay();
+            loadSalesAnalytics();
+
+            // Event listeners
+            startDateSelector.addEventListener('click', () => {
+                UIController.showDatePicker(startDate, (date) => {
+                    startDate = date;
+                    updateDateDisplay();
+                    loadCurrentTab();
+                });
+            });
+
+            endDateSelector.addEventListener('click', () => {
+                UIController.showDatePicker(endDate, (date) => {
+                    endDate = date;
+                    updateDateDisplay();
+                    loadCurrentTab();
+                });
+            });
+
+            salesTab.addEventListener('click', () => {
+                salesTab.classList.add('active');
+                profitTab.classList.remove('active');
+                salesContent.classList.remove('hidden');
+                profitContent.classList.add('hidden');
+                loadSalesAnalytics();
+            });
+
+            profitTab.addEventListener('click', () => {
+                profitTab.classList.add('active');
+                salesTab.classList.remove('active');
+                profitContent.classList.remove('hidden');
+                salesContent.classList.add('hidden');
+                loadProfitAnalytics();
+            });
+
+            backButton.addEventListener('click', () => {
+                window.location.href = 'main.html';
+            });
+
+            // Functions
+            function updateDateDisplay() {
+                startDateDisplay.textContent = formatDate(startDate);
+                endDateDisplay.textContent = formatDate(endDate);
+            }
+
+            function formatDate(date) {
+                const day = String(date.getDate()).padStart(2, '0');
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const year = date.getFullYear();
+                return `${day}.${month}.${year}`;
+            }
+
+            function formatCurrency(value) {
+                return value.toFixed(2);
+            }
+
+            function loadCurrentTab() {
+                if (salesTab.classList.contains('active')) {
+                    loadSalesAnalytics();
+                } else {
+                    loadProfitAnalytics();
+                }
+            }
+
+            async function loadSalesAnalytics() {
+                try {
+                    // Format dates for database query
+                    const startDateFormatted = startDate.toISOString();
+                    const endDateFormatted = new Date(endDate.setHours(23, 59, 59, 999)).toISOString();
+                    
+                    // Get sales analytics from database
+                    const salesData = await Database.getSalesAnalytics(startDateFormatted, endDateFormatted);
+                    
+                    // Update UI with sales data
+                    totalSalesEl.textContent = formatCurrency(salesData.totalSales);
+                    invoiceCountEl.textContent = salesData.invoiceCount;
+                    averageInvoiceEl.textContent = formatCurrency(salesData.averageInvoice);
+                    paidAmountEl.textContent = formatCurrency(salesData.paidAmount);
+                    debtAmountEl.textContent = formatCurrency(salesData.debtAmount);
+                    
+                    // Get profit data for the chart
+                    const profitData = await Database.getProfitAnalytics(startDateFormatted, endDateFormatted);
+                    
+                    // Update sales chart
+                    updateSalesChart(salesData, profitData);
+                    
+                    // Get top products
+                    const topProducts = await Database.getTopProducts(startDateFormatted, endDateFormatted, 5);
+                    updateTopProductsList(topProducts);
+                    
+                } catch (error) {
+                    showSnackbar(`Ошибка загрузки данных: ${error.message}`);
+                }
+            }
+
+            async function loadProfitAnalytics() {
+                try {
+                    // Format dates for database query
+                    const startDateFormatted = startDate.toISOString();
+                    const endDateFormatted = new Date(endDate.setHours(23, 59, 59, 999)).toISOString();
+                    
+                    // Get profit analytics from database
+                    const profitData = await Database.getProfitAnalytics(startDateFormatted, endDateFormatted);
+                    
+                    // Update UI with profit data
+                    revenueEl.textContent = formatCurrency(profitData.revenue);
+                    costEl.textContent = formatCurrency(profitData.cost);
+                    profitEl.textContent = formatCurrency(profitData.profit);
+                    
+                    // Calculate margin
+                    let margin = 0;
+                    if (profitData.revenue > 0) {
+                        margin = (profitData.profit / profitData.revenue) * 100;
+                    }
+                    marginEl.textContent = `${margin.toFixed(2)}%`;
+                    
+                    // Update profit chart
+                    updateProfitChart(profitData);
+                    
+                } catch (error) {
+                    showSnackbar(`Ошибка загрузки данных: ${error.message}`);
+                }
+            }
+
+            function updateSalesChart(salesData, profitData) {
+                const ctx = document.getElementById('sales-chart').getContext('2d');
+                
+                // Destroy existing chart if it exists
+                if (salesChart) {
+                    salesChart.destroy();
+                }
+                
+                // Create new chart
+                salesChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Продажи'],
+                        datasets: [
+                            {
+                                label: 'Оплачено',
+                                data: [salesData.paidAmount],
+                                backgroundColor: 'rgba(75, 192, 92, 0.7)'
+                            },
+                            {
+                                label: 'В долг',
+                                data: [salesData.debtAmount],
+                                backgroundColor: 'rgba(255, 99, 132, 0.7)'
+                            },
+                            {
+                                label: 'Прибыль',
+                                data: [profitData ? profitData.profit : 0],
+                                backgroundColor: 'rgba(54, 162, 235, 0.7)'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            title: {
+                                display: true,
+                                text: 'Структура продаж'
+                            }
+                        }
+                    }
+                });
+            }
+
+            function updateProfitChart(profitData) {
+                const ctx = document.getElementById('profit-chart').getContext('2d');
+                
+                // Destroy existing chart if it exists
+                if (profitChart) {
+                    profitChart.destroy();
+                }
+                
+                // Create new chart
+                profitChart = new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: ['Прибыль', 'Себестоимость'],
+                        datasets: [{
+                            data: [profitData.profit, profitData.cost],
+                            backgroundColor: [
+                                'rgba(54, 162, 235, 0.7)',
+                                'rgba(255, 99, 132, 0.7)'
+                            ],
+                            borderColor: [
+                                'rgba(54, 162, 235, 1)',
+                                'rgba(255, 99, 132, 1)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            title: {
+                                display: true,
+                                text: 'Структура выручки'
+                            }
+                        }
+                    }
+                });
+            }
+
+            function updateTopProductsList(products) {
+                topProductsList.innerHTML = '';
+                
+                if (!products || products.length === 0) {
+                    topProductsList.innerHTML = '<li class="empty-list-message">Нет данных о продажах товаров</li>';
+                    return;
+                }
+                
+                products.forEach((product, index) => {
+                    const li = document.createElement('li');
+                    li.className = 'inventory-item';
+                    
+                    li.innerHTML = `
+                        <div class="item-icon">
+                            <span class="top-rank">${index + 1}</span>
+                        </div>
+                        <div class="item-details">
+                            <div class="item-name">${product.name}</div>
+                            <div class="item-info">Продано: ${product.totalQuantity} на сумму: ${formatCurrency(product.totalSales)}</div>
+                        </div>
+                    `;
+                    
+                    topProductsList.appendChild(li);
+                });
+            }
+
+            function showSnackbar(message, duration = 1500) {
+                const snackbar = document.getElementById('snackbar');
+                snackbar.textContent = message;
+                snackbar.className = 'show';
+                
+                setTimeout(() => {
+                    snackbar.className = snackbar.className.replace('show', '');
+                }, duration);
+            }
+        });
+    </script>
+</body>
+</html>
