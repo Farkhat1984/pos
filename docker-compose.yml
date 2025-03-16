@@ -1,0 +1,43 @@
+version: '3'
+
+services:
+  # Ваш существующий FastAPI сервис
+  fastapi:
+    image: ваш-образ-fastapi:latest
+    # или build: ./путь-к-папке-с-fastapi
+    container_name: fastapi-service
+    # volumes, environment и т.д.
+    ports:
+      - "8000:8000" # Если вам нужно открыть порт напрямую
+    networks:
+      - app-network
+
+  # Новое PWA приложение
+  pos-pwa:
+    build:
+      context: ./путь-к-папке-с-pwa
+      dockerfile: Dockerfile
+    container_name: pos-pwa
+    # volumes при необходимости
+    networks:
+      - app-network
+
+  # Nginx для маршрутизации запросов
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-proxy
+    ports:
+      - "80:80"
+      - "443:443" # Если используете HTTPS
+    volumes:
+      - ./nginx-proxy.conf:/etc/nginx/conf.d/default.conf
+      - ./ssl:/etc/ssl # Если используете HTTPS
+    depends_on:
+      - fastapi
+      - pos-pwa
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

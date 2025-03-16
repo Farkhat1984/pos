@@ -310,6 +310,54 @@ const Database = (() => {
     }
 
     /**
+     * Update an existing invoice
+     * @param {number} id - Invoice ID
+     * @param {Object} invoiceData - Updated invoice data
+     * @returns {Promise<boolean>} - Success status
+     */
+    async function updateInvoice(id, invoiceData) {
+        const db = await getDb();
+        
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction(['invoices'], 'readwrite');
+            const store = transaction.objectStore('invoices');
+            
+            // First get the existing invoice
+            const getRequest = store.get(id);
+            
+            getRequest.onsuccess = (event) => {
+                const invoice = event.target.result;
+                
+                if (!invoice) {
+                    reject(new Error('Invoice not found'));
+                    return;
+                }
+                
+                // Update invoice data
+                const updatedInvoice = {
+                    ...invoice,
+                    ...invoiceData,
+                    updatedAt: new Date().toISOString()
+                };
+                
+                const updateRequest = store.put(updatedInvoice);
+                
+                updateRequest.onsuccess = () => {
+                    resolve(true);
+                };
+                
+                updateRequest.onerror = (event) => {
+                    reject(event.target.error);
+                };
+            };
+            
+            getRequest.onerror = (event) => {
+                reject(event.target.error);
+            };
+        });
+    }
+
+    /**
      * Add an item to an invoice
      * @param {Object} item - Invoice item data
      * @returns {Promise<number>} - ID of the added item
@@ -328,6 +376,55 @@ const Database = (() => {
             };
             
             request.onerror = (event) => {
+                reject(event.target.error);
+            };
+        });
+    }
+
+    /**
+     * Delete all items for a specific invoice
+     * @param {number} invoiceId - Invoice ID
+     * @returns {Promise<boolean>} - Success status
+     */
+    async function deleteInvoiceItems(invoiceId) {
+        const db = await getDb();
+        
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction(['invoice_items'], 'readwrite');
+            const store = transaction.objectStore('invoice_items');
+            const index = store.index('invoiceId');
+            
+            // Get all items for this invoice
+            const getRequest = index.getAll(invoiceId);
+            
+            getRequest.onsuccess = (event) => {
+                const items = event.target.result;
+                
+                if (items.length === 0) {
+                    resolve(true); // No items to delete
+                    return;
+                }
+                
+                let deletedCount = 0;
+                
+                // Delete each item
+                items.forEach(item => {
+                    const deleteRequest = store.delete(item.id);
+                    
+                    deleteRequest.onsuccess = () => {
+                        deletedCount++;
+                        if (deletedCount === items.length) {
+                            resolve(true); // All items deleted
+                        }
+                    };
+                    
+                    deleteRequest.onerror = (event) => {
+                        reject(event.target.error);
+                    };
+                });
+            };
+            
+            getRequest.onerror = (event) => {
                 reject(event.target.error);
             };
         });
@@ -539,9 +636,11 @@ const Database = (() => {
         getAllProducts,
         searchProducts,
         createInvoice,
+        updateInvoice,     // Добавлена новая функция
         addInvoiceItem,
         getInvoice,
         getInvoiceItems,
+        deleteInvoiceItems, // Добавлена новая функция
         getInvoicesByPeriod,
         deleteInvoice,
         getSalesAnalytics

@@ -23,7 +23,7 @@ const urlsToCache = [
   '/js/barcode-scanner.js',
   '/js/ui-controller.js',
   '/assets/logo.png',
-  '/assets/manifest.json',
+  '/manifest.json',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css',
   'https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js'
 ];

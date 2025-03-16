@@ -268,12 +268,11 @@ textarea:focus {
     }
 }
 
-/* Snackbar */
+/* Snackbar - адаптивная версия */
 #snackbar {
     visibility: hidden;
     min-width: 250px;
-    max-width: 80%;
-    margin-left: -125px;
+    max-width: 90%;
     background-color: var(--gray-dark);
     color: #fff;
     text-align: center;
@@ -285,6 +284,8 @@ textarea:focus {
     bottom: 30px;
     font-size: 16px;
     transform: translateX(-50%);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+    word-wrap: break-word;
 }
 
 #snackbar.show {
@@ -313,6 +314,60 @@ textarea:focus {
     to {
         bottom: 0;
         opacity: 0;
+    }
+}
+
+/* Медиа-запросы для адаптивности на мобильных устройствах */
+@media (max-width: 480px) {
+    #snackbar {
+        min-width: auto;
+        width: 85%;
+        padding: 12px;
+        font-size: 14px;
+        bottom: 20px;
+        border-radius: 16px;
+    }
+
+    #snackbar.show {
+        visibility: visible;
+        animation: snackbar-fadein-mobile 0.3s, snackbar-fadeout-mobile 0.3s 2.7s;
+    }
+
+    @keyframes snackbar-fadein-mobile {
+        from {
+            bottom: 0;
+            opacity: 0;
+        }
+
+        to {
+            bottom: 20px;
+            opacity: 1;
+        }
+    }
+
+    @keyframes snackbar-fadeout-mobile {
+        from {
+            bottom: 20px;
+            opacity: 1;
+        }
+
+        to {
+            bottom: 0;
+            opacity: 0;
+        }
+    }
+}
+
+/* Поддержка устройств с "челкой" и безопасной зоной */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+    #snackbar {
+        padding-bottom: calc(16px + env(safe-area-inset-bottom));
+    }
+
+    @media (max-width: 480px) {
+        #snackbar {
+            padding-bottom: calc(12px + env(safe-area-inset-bottom));
+        }
     }
 }
 
