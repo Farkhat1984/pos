@@ -104,7 +104,9 @@
     margin-bottom: var(--spacing-md);
 }
 
-input, select, textarea {
+input,
+select,
+textarea {
     width: 100%;
     height: var(--input-height);
     padding: 0 var(--spacing-md);
@@ -114,7 +116,9 @@ input, select, textarea {
     transition: border-color var(--transition-fast);
 }
 
-input:focus, select:focus, textarea:focus {
+input:focus,
+select:focus,
+textarea:focus {
     outline: none;
     border-color: var(--primary-color);
 }
@@ -207,11 +211,45 @@ input:focus, select:focus, textarea:focus {
     margin-bottom: var(--spacing-md);
 }
 
-.dialog-actions {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: var(--spacing-lg);
-    gap: var(--spacing-sm);
+@media (max-width: 767px) {
+    .dialog-actions {
+        flex-direction: column;
+        /* Кнопки располагаются вертикально */
+        align-items: stretch;
+        /* Кнопки растягиваются на всю ширину контейнера */
+        gap: var(--spacing-sm);
+        /* Уменьшим отступ между кнопками */
+    }
+
+    .dialog-actions .btn {
+        width: 100%;
+        /* Кнопки занимают всю доступную ширину */
+        padding-left: var(--spacing-md);
+        /* Вернем стандартные отступы, если нужно */
+        padding-right: var(--spacing-md);
+        margin-bottom: var(--spacing-xs);
+        /* Добавим отступ снизу между кнопками */
+        text-align: center;
+        /* Выравнивание текста по центру, если нужно */
+    }
+
+    .dialog-actions .btn:last-child {
+        margin-bottom: 0;
+        /* Убираем отступ снизу у последней кнопки */
+    }
+
+    .dialog-content {
+        padding: var(--spacing-md);
+        /* Уменьшим внутренний отступ диалогового окна на мобильных */
+    }
+
+    .btn {
+        padding-left: var(--spacing-md);
+        /* Уменьшим горизонтальные отступы у кнопок в целом на мобильных, если нужно */
+        padding-right: var(--spacing-md);
+        font-size: var(--font-size-sm);
+        /* Можно немного уменьшить размер шрифта кнопок на мобильных */
+    }
 }
 
 /* Spinner */
@@ -225,7 +263,9 @@ input:focus, select:focus, textarea:focus {
 }
 
 @keyframes spinner-rotate {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 /* Snackbar */
@@ -253,13 +293,27 @@ input:focus, select:focus, textarea:focus {
 }
 
 @keyframes snackbar-fadein {
-    from { bottom: 0; opacity: 0; }
-    to { bottom: 30px; opacity: 1; }
+    from {
+        bottom: 0;
+        opacity: 0;
+    }
+
+    to {
+        bottom: 30px;
+        opacity: 1;
+    }
 }
 
 @keyframes snackbar-fadeout {
-    from { bottom: 30px; opacity: 1; }
-    to { bottom: 0; opacity: 0; }
+    from {
+        bottom: 30px;
+        opacity: 1;
+    }
+
+    to {
+        bottom: 0;
+        opacity: 0;
+    }
 }
 
 /* FAB (Floating Action Button) */
@@ -303,14 +357,42 @@ input:focus, select:focus, textarea:focus {
     text-align: center;
 }
 
-.mt-1 { margin-top: var(--spacing-xs); }
-.mt-2 { margin-top: var(--spacing-sm); }
-.mt-3 { margin-top: var(--spacing-md); }
-.mt-4 { margin-top: var(--spacing-lg); }
-.mt-5 { margin-top: var(--spacing-xl); }
+.mt-1 {
+    margin-top: var(--spacing-xs);
+}
 
-.mb-1 { margin-bottom: var(--spacing-xs); }
-.mb-2 { margin-bottom: var(--spacing-sm); }
-.mb-3 { margin-bottom: var(--spacing-md); }
-.mb-4 { margin-bottom: var(--spacing-lg); }
-.mb-5 { margin-bottom: var(--spacing-xl); }
+.mt-2 {
+    margin-top: var(--spacing-sm);
+}
+
+.mt-3 {
+    margin-top: var(--spacing-md);
+}
+
+.mt-4 {
+    margin-top: var(--spacing-lg);
+}
+
+.mt-5 {
+    margin-top: var(--spacing-xl);
+}
+
+.mb-1 {
+    margin-bottom: var(--spacing-xs);
+}
+
+.mb-2 {
+    margin-bottom: var(--spacing-sm);
+}
+
+.mb-3 {
+    margin-bottom: var(--spacing-md);
+}
+
+.mb-4 {
+    margin-bottom: var(--spacing-lg);
+}
+
+.mb-5 {
+    margin-bottom: var(--spacing-xl);
+}
